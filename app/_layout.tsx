@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { RoleProvider } from '@/components/RoleContext';
+import { AuthProvider } from '@/hooks/useAuth';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -36,13 +37,16 @@ export default function RootLayout() {
   }
 
   return (
-    <RoleProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </RoleProvider>
+    <AuthProvider>
+      <RoleProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </RoleProvider>
+    </AuthProvider>
   );
 }
