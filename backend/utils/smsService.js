@@ -1,14 +1,26 @@
 const twilio = require('twilio');
 
-// Initialize Twilio client
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Check if Twilio credentials are available
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+if (!accountSid || !authToken) {
+  console.warn('⚠️ Twilio credentials not configured. SMS functionality will be disabled.');
+}
+
+// Initialize Twilio client only if credentials are available
+const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
 
 // Send SMS function
 const sendSMS = async (to, message) => {
   try {
+    if (!client) {
+      console.warn('SMS service not available - Twilio not configured');
+      // In development, just log the message instead of failing
+      console.log(`📱 SMS would be sent to ${to}: ${message}`);
+      return { sid: 'mock-message-id', status: 'sent' };
+    }
+
     const result = await client.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
