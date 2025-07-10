@@ -41,13 +41,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', authenticateToken, userRoutes);
-app.use('/api/rides', authenticateToken, rideRoutes);
-app.use('/api/tokens', authenticateToken, tokenRoutes);
-app.use('/api/rewards', authenticateToken, rewardRoutes);
-
 // Middleware
 app.use(helmet());
 app.use(compression());
@@ -77,6 +70,13 @@ socketHandler(io);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
+app.use('/api/rides', authenticateToken, rideRoutes);
+app.use('/api/tokens', authenticateToken, tokenRoutes);
+app.use('/api/rewards', authenticateToken, rewardRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
