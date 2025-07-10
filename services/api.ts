@@ -2,7 +2,8 @@
 import { Platform } from 'react-native';
 
 // API Configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 const WS_BASE_URL = process.env.EXPO_PUBLIC_WS_URL || 'ws://localhost:3000';
 
 // Types
@@ -143,7 +144,8 @@ class TokenStorage {
       localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
     } else {
       // Use AsyncStorage for mobile
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
       await AsyncStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
     }
@@ -153,7 +155,8 @@ class TokenStorage {
     if (Platform.OS === 'web') {
       return localStorage.getItem(this.ACCESS_TOKEN_KEY);
     } else {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
       return await AsyncStorage.getItem(this.ACCESS_TOKEN_KEY);
     }
   }
@@ -162,7 +165,8 @@ class TokenStorage {
     if (Platform.OS === 'web') {
       return localStorage.getItem(this.REFRESH_TOKEN_KEY);
     } else {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
       return await AsyncStorage.getItem(this.REFRESH_TOKEN_KEY);
     }
   }
@@ -172,7 +176,8 @@ class TokenStorage {
       localStorage.removeItem(this.ACCESS_TOKEN_KEY);
       localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     } else {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const AsyncStorage =
+        require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.removeItem(this.ACCESS_TOKEN_KEY);
       await AsyncStorage.removeItem(this.REFRESH_TOKEN_KEY);
     }
@@ -192,22 +197,40 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Add auth header if token exists
     const token = await TokenStorage.getAccessToken();
-    const headers: HeadersInit = {
+    let baseHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
 
+    // Safely merge headers if present
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => {
+        baseHeaders[key] = value;
+      });
+    } else if (Array.isArray(options.headers)) {
+      for (const [key, value] of options.headers) {
+        baseHeaders[key] = value;
+      }
+    } else if (
+      typeof options.headers === 'object' &&
+      options.headers !== null
+    ) {
+      baseHeaders = {
+        ...baseHeaders,
+        ...(options.headers as Record<string, string>),
+      };
+    }
+
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      baseHeaders.Authorization = `Bearer ${token}`;
     }
 
     try {
       const response = await fetch(url, {
         ...options,
-        headers,
+        headers: baseHeaders,
       });
 
       const data = await response.json();
@@ -218,10 +241,10 @@ class ApiClient {
         if (refreshed) {
           // Retry the original request with new token
           const newToken = await TokenStorage.getAccessToken();
-          headers.Authorization = `Bearer ${newToken}`;
+          baseHeaders.Authorization = `Bearer ${newToken}`;
           const retryResponse = await fetch(url, {
             ...options,
-            headers,
+            headers: baseHeaders,
           });
           return await retryResponse.json();
         }
@@ -250,7 +273,7 @@ class ApiClient {
         await TokenStorage.setTokens(data.data.accessToken, refreshToken);
         return true;
       }
-      
+
       // Refresh failed, clear tokens
       await TokenStorage.clearTokens();
       return false;
@@ -278,7 +301,10 @@ class ApiClient {
     });
   }
 
-  async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
+  async login(
+    email: string,
+    password: string
+  ): Promise<ApiResponse<AuthResponse>> {
     return this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -287,7 +313,7 @@ class ApiClient {
 
   async logout(): Promise<ApiResponse<void>> {
     const refreshToken = await TokenStorage.getRefreshToken();
-    const result = await this.request('/auth/logout', {
+    const result = await this.request<void>('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     });
@@ -299,7 +325,9 @@ class ApiClient {
     return this.request('/auth/profile');
   }
 
-  async updateProfile(updates: Partial<User>): Promise<ApiResponse<{ user: User }>> {
+  async updateProfile(
+    updates: Partial<User>
+  ): Promise<ApiResponse<{ user: User }>> {
     return this.request('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -321,14 +349,23 @@ class ApiClient {
   }
 
   // User endpoints
-  async updateLocation(lat: number, lng: number, address?: string): Promise<ApiResponse<{ user: User }>> {
+  async updateLocation(
+    lat: number,
+    lng: number,
+    address?: string
+  ): Promise<ApiResponse<{ user: User }>> {
     return this.request('/users/location', {
       method: 'PUT',
       body: JSON.stringify({ lat, lng, address }),
     });
   }
 
-  async getNearbyUsers(lat: number, lng: number, radius?: number, role?: string): Promise<ApiResponse<{ users: User[] }>> {
+  async getNearbyUsers(
+    lat: number,
+    lng: number,
+    radius?: number,
+    role?: string
+  ): Promise<ApiResponse<{ users: User[] }>> {
     const params = new URLSearchParams({
       lat: lat.toString(),
       lng: lng.toString(),
@@ -338,14 +375,18 @@ class ApiClient {
     return this.request(`/users/nearby?${params}`);
   }
 
-  async updateRole(role: 'rider' | 'driver' | 'both'): Promise<ApiResponse<{ user: User }>> {
+  async updateRole(
+    role: 'rider' | 'driver' | 'both'
+  ): Promise<ApiResponse<{ user: User }>> {
     return this.request('/users/role', {
       method: 'PUT',
       body: JSON.stringify({ role }),
     });
   }
 
-  async getUserStats(): Promise<ApiResponse<{ stats: User['stats']; tokens: User['tokens'] }>> {
+  async getUserStats(): Promise<
+    ApiResponse<{ stats: User['stats']; tokens: User['tokens'] }>
+  > {
     return this.request('/users/stats');
   }
 
@@ -371,7 +412,11 @@ class ApiClient {
     });
   }
 
-  async getNearbyRides(lat: number, lng: number, radius?: number): Promise<ApiResponse<{ rides: Ride[] }>> {
+  async getNearbyRides(
+    lat: number,
+    lng: number,
+    radius?: number
+  ): Promise<ApiResponse<{ rides: Ride[] }>> {
     const params = new URLSearchParams({
       lat: lat.toString(),
       lng: lng.toString(),
@@ -386,22 +431,31 @@ class ApiClient {
     });
   }
 
-  async updateRideStatus(rideId: string, status: string): Promise<ApiResponse<{ ride: Ride }>> {
+  async updateRideStatus(
+    rideId: string,
+    status: string
+  ): Promise<ApiResponse<{ ride: Ride }>> {
     return this.request(`/rides/${rideId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
   }
 
-  async getRideHistory(page?: number, limit?: number, status?: string): Promise<ApiResponse<{
-    rides: Ride[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }>> {
+  async getRideHistory(
+    page?: number,
+    limit?: number,
+    status?: string
+  ): Promise<
+    ApiResponse<{
+      rides: Ride[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>
+  > {
     const params = new URLSearchParams({
       ...(page && { page: page.toString() }),
       ...(limit && { limit: limit.toString() }),
@@ -410,7 +464,11 @@ class ApiClient {
     return this.request(`/rides/history?${params}`);
   }
 
-  async rateRide(rideId: string, rating: number, feedback?: string): Promise<ApiResponse<{ ride: Ride }>> {
+  async rateRide(
+    rideId: string,
+    rating: number,
+    feedback?: string
+  ): Promise<ApiResponse<{ ride: Ride }>> {
     return this.request(`/rides/${rideId}/rate`, {
       method: 'POST',
       body: JSON.stringify({ rating, feedback }),
@@ -422,17 +480,26 @@ class ApiClient {
     return this.request('/tokens/balance');
   }
 
-  async transferTokens(fromCategory: string, toCategory: string, amount: number): Promise<ApiResponse<{ tokens: User['tokens'] }>> {
+  async transferTokens(
+    fromCategory: string,
+    toCategory: string,
+    amount: number
+  ): Promise<ApiResponse<{ tokens: User['tokens'] }>> {
     return this.request('/tokens/transfer', {
       method: 'POST',
       body: JSON.stringify({ fromCategory, toCategory, amount }),
     });
   }
 
-  async getTokenHistory(page?: number, limit?: number): Promise<ApiResponse<{
-    transactions: any[];
-    pagination: any;
-  }>> {
+  async getTokenHistory(
+    page?: number,
+    limit?: number
+  ): Promise<
+    ApiResponse<{
+      transactions: any[];
+      pagination: any;
+    }>
+  > {
     const params = new URLSearchParams({
       ...(page && { page: page.toString() }),
       ...(limit && { limit: limit.toString() }),
@@ -441,7 +508,10 @@ class ApiClient {
   }
 
   // Reward endpoints
-  async getAvailableRewards(category?: string, featured?: boolean): Promise<ApiResponse<{ rewards: Reward[] }>> {
+  async getAvailableRewards(
+    category?: string,
+    featured?: boolean
+  ): Promise<ApiResponse<{ rewards: Reward[] }>> {
     const params = new URLSearchParams({
       ...(category && { category }),
       ...(featured !== undefined && { featured: featured.toString() }),
@@ -449,23 +519,32 @@ class ApiClient {
     return this.request(`/rewards/available?${params}`);
   }
 
-  async getRewardDetails(rewardId: string): Promise<ApiResponse<{ reward: Reward }>> {
+  async getRewardDetails(
+    rewardId: string
+  ): Promise<ApiResponse<{ reward: Reward }>> {
     return this.request(`/rewards/${rewardId}`);
   }
 
-  async redeemReward(rewardId: string): Promise<ApiResponse<{
-    redemption: any;
-    userTokens: User['tokens'];
-  }>> {
+  async redeemReward(rewardId: string): Promise<
+    ApiResponse<{
+      redemption: any;
+      userTokens: User['tokens'];
+    }>
+  > {
     return this.request(`/rewards/${rewardId}/redeem`, {
       method: 'POST',
     });
   }
 
-  async getRedemptionHistory(page?: number, limit?: number): Promise<ApiResponse<{
-    redemptions: any[];
-    pagination: any;
-  }>> {
+  async getRedemptionHistory(
+    page?: number,
+    limit?: number
+  ): Promise<
+    ApiResponse<{
+      redemptions: any[];
+      pagination: any;
+    }>
+  > {
     const params = new URLSearchParams({
       ...(page && { page: page.toString() }),
       ...(limit && { limit: limit.toString() }),
@@ -491,7 +570,7 @@ export class WebSocketService {
       // Use socket.io-client for web
       const io = require('socket.io-client');
       this.token = await TokenStorage.getAccessToken();
-      
+
       this.socket = io(WS_BASE_URL, {
         auth: {
           token: this.token,
@@ -559,7 +638,11 @@ export class WebSocketService {
   }
 
   // Emergency
-  sendEmergencyAlert(rideId: string, location: { lat: number; lng: number }, type: string) {
+  sendEmergencyAlert(
+    rideId: string,
+    location: { lat: number; lng: number },
+    type: string
+  ) {
     if (this.socket) {
       this.socket.emit('emergency_alert', { rideId, location, type });
     }
