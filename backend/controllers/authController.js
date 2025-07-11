@@ -6,18 +6,14 @@ const { sendSMS } = require('../utils/smsService');
 
 // Generate JWT tokens
 const generateTokens = (userId) => {
-  const accessToken = jwt.sign(
-    { userId },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE || '24h' }
-  );
-  
-  const refreshToken = jwt.sign(
-    { userId },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
-  );
-  
+  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || '24h',
+  });
+
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
+  });
+
   return { accessToken, refreshToken };
 };
 
@@ -30,7 +26,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors.array()
+        errors: errors.array(),
       });
     }
 
@@ -42,18 +38,18 @@ exports.register = async (req, res) => {
       lastName,
       dateOfBirth,
       gender,
-      role = 'rider'
+      role = 'rider',
     } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { phone }]
+      $or: [{ email }, { phone }],
     });
 
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'User already exists with this email or phone number'
+        message: 'User already exists with this email or phone number',
       });
     }
 
@@ -67,8 +63,8 @@ exports.register = async (req, res) => {
         firstName,
         lastName,
         dateOfBirth: new Date(dateOfBirth),
-        gender
-      }
+        gender,
+      },
     });
 
     await user.save();
@@ -103,17 +99,16 @@ exports.register = async (req, res) => {
         user: userResponse,
         tokens: {
           accessToken,
-          refreshToken
-        }
-      }
+          refreshToken,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -126,7 +121,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors.array()
+        errors: errors.array(),
       });
     }
 
@@ -137,7 +132,7 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
@@ -145,7 +140,7 @@ exports.login = async (req, res) => {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Account is deactivated. Please contact support.'
+        message: 'Account is deactivated. Please contact support.',
       });
     }
 
@@ -153,7 +148,9 @@ exports.login = async (req, res) => {
     if (user.isBanned) {
       return res.status(403).json({
         success: false,
-        message: `Account is banned. Reason: ${user.banReason || 'Violation of terms'}`
+        message: `Account is banned. Reason: ${
+          user.banReason || 'Violation of terms'
+        }`,
       });
     }
 
@@ -162,7 +159,7 @@ exports.login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
@@ -186,17 +183,16 @@ exports.login = async (req, res) => {
         user: userResponse,
         tokens: {
           accessToken,
-          refreshToken
-        }
-      }
+          refreshToken,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -209,27 +205,29 @@ exports.refreshToken = async (req, res) => {
     if (!refreshToken) {
       return res.status(401).json({
         success: false,
-        message: 'Refresh token is required'
+        message: 'Refresh token is required',
       });
     }
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    
+
     // Find user and check if refresh token exists
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid refresh token'
+        message: 'Invalid refresh token',
       });
     }
 
-    const tokenExists = user.refreshTokens.some(t => t.token === refreshToken);
+    const tokenExists = user.refreshTokens.some(
+      (t) => t.token === refreshToken
+    );
     if (!tokenExists) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid refresh token'
+        message: 'Invalid refresh token',
       });
     }
 
@@ -240,15 +238,14 @@ exports.refreshToken = async (req, res) => {
       success: true,
       message: 'Token refreshed successfully',
       data: {
-        accessToken
-      }
+        accessToken,
+      },
     });
-
   } catch (error) {
     console.error('Token refresh error:', error);
     res.status(401).json({
       success: false,
-      message: 'Invalid refresh token'
+      message: 'Invalid refresh token',
     });
   }
 };
@@ -262,25 +259,24 @@ exports.logout = async (req, res) => {
     if (refreshToken) {
       // Remove specific refresh token
       await User.findByIdAndUpdate(userId, {
-        $pull: { refreshTokens: { token: refreshToken } }
+        $pull: { refreshTokens: { token: refreshToken } },
       });
     } else {
       // Remove all refresh tokens (logout from all devices)
       await User.findByIdAndUpdate(userId, {
-        $set: { refreshTokens: [] }
+        $set: { refreshTokens: [] },
       });
     }
 
     res.json({
       success: true,
-      message: 'Logout successful'
+      message: 'Logout successful',
     });
-
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -297,30 +293,32 @@ exports.sendPhoneOTP = async (req, res) => {
     // Store OTP in user document (in production, use Redis for better performance)
     await User.findByIdAndUpdate(userId, {
       'verification.phoneOTP': otp,
-      'verification.phoneOTPExpiry': new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+      'verification.phoneOTPExpiry': new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
 
     // Send SMS
     try {
-      await sendSMS(phone, `Your HICUT verification code is: ${otp}. Valid for 10 minutes.`);
+      await sendSMS(
+        phone,
+        `Your HICUT verification code is: ${otp}. Valid for 10 minutes.`
+      );
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to send OTP. Please try again.'
+        message: 'Failed to send OTP. Please try again.',
       });
     }
 
     res.json({
       success: true,
-      message: 'OTP sent successfully'
+      message: 'OTP sent successfully',
     });
-
   } catch (error) {
     console.error('Send OTP error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -335,7 +333,7 @@ exports.verifyPhoneOTP = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
@@ -343,7 +341,7 @@ exports.verifyPhoneOTP = async (req, res) => {
     if (!user.verification.phoneOTP || user.verification.phoneOTP !== otp) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid OTP'
+        message: 'Invalid OTP',
       });
     }
 
@@ -351,7 +349,7 @@ exports.verifyPhoneOTP = async (req, res) => {
     if (user.verification.phoneOTPExpiry < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'OTP has expired'
+        message: 'OTP has expired',
       });
     }
 
@@ -363,14 +361,13 @@ exports.verifyPhoneOTP = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Phone number verified successfully'
+      message: 'Phone number verified successfully',
     });
-
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -379,25 +376,24 @@ exports.verifyPhoneOTP = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
+
     const user = await User.findById(userId).select('-password -refreshTokens');
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
     res.json({
       success: true,
-      data: { user }
+      data: { user },
     });
-
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
     });
   }
 };
@@ -425,22 +421,21 @@ exports.updateProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: { user }
+      data: { user },
     });
-
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
