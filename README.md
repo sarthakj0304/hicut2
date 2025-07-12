@@ -116,6 +116,15 @@ HICUT/
    - Mobile: Scan QR code with Expo Go app
 
 ---
+💼 Team Roles & Next Steps
+
+Developer      Focus Area
+
+Dev #1      Auth & Profile + Ride Stories Feed
+
+Dev #2      Map & Ride Matching + Radar Alerts
+
+Dev #3      Rewards System + Leaderboards & UI
 
 ## 🎯 Current Features (MVP)
 
@@ -137,6 +146,23 @@ HICUT/
 - [ ] **Push Notifications** - Ride alerts & updates
 
 ---
+Habit-Forming Social Features
+Ride Stories: Share short, story-like posts after rides (with photos, text). Others can react or comment, building rapport.
+Leaderboards: Regional and corridor-based rankings for “Top Pilots,” “Eco Warriors” (highest CO₂ saved), and “Explorers” (distinct routes covered).
+Streaks & Milestones: Daily/weekly ride streaks unlock bonus tokens and exclusive badges.
+Badges & Titles: Earn titles like “Campus Champion,” “City Voyager,” “Eco Hero” displayed on profile and map pins.
+Referral Leagues: Friendly group challenges—invite friends, form teams, compete for most rides or tokens.
+
+4. Community & Discovery
+
+Geo‑Tagged Meetups: Scheduled group rides or events flagged on the map for community gatherings.
+Collaborative Routes: Users can propose popular adventure routes; top-voted routes become “HITCH Trails” with special rewards.
+In-App Feeds: See nearby ride stories, leaderboards, and limited-time local deals.
+
+5. Safety & Anti-Cheating
+Geofencing & Haversine Checks: Ensure rides meet distance and uniqueness criteria.
+Real‑Time SOS & Live-Share: One-tap emergency alerts to contacts and on-duty support.
+Review & Audit: Combined AI and manual audits flag suspicious behavior; trust scores adjust dynamically.
 
 ## 🗺️ Development Roadmap
 
@@ -552,6 +578,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Version**: 1.0.0-alpha  
-**Last Updated**: December 2024  
-**Next Milestone**: Backend API Development
+
+
