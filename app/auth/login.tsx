@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginScreen() {
-  const { login, isLoading } = useAuth();
-  const [email, setEmail] = useState('');
+  const { login, isLoading, rememberedEmail, setRememberMe } = useAuth();
+  const [email, setEmail] = useState(rememberedEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMeEnabled, setRememberMeEnabled] = useState(!!rememberedEmail);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
+  // Update remember me setting
+  React.useEffect(() => {
+    setRememberMe(rememberMeEnabled);
+  }, [rememberMeEnabled, setRememberMe]);
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
     
@@ -43,12 +48,25 @@ export default function LoginScreen() {
     }
   };
 
+  // Quick login with remembered email
+  const handleQuickLogin = () => {
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      // Focus on password field
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue your HICUT journey</Text>
+          
+          {rememberedEmail && (
+            <TouchableOpacity style={styles.quickLoginButton} onPress={handleQuickLogin} activeOpacity={0.8}>
+              <Text style={styles.quickLoginText}>Continue as {rememberedEmail}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.form}>
@@ -99,6 +117,20 @@ export default function LoginScreen() {
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
+          {/* Remember Me Toggle */}
+          <View style={styles.rememberMeContainer}>
+            <View style={styles.rememberMeLeft}>
+              <Text style={styles.rememberMeLabel}>Remember me</Text>
+              <Text style={styles.rememberMeSubtext}>Save email for faster login</Text>
+            </View>
+            <Switch
+              value={rememberMeEnabled}
+              onValueChange={setRememberMeEnabled}
+              trackColor={{ false: '#E5E5E7', true: '#007AFF' }}
+              thumbColor="#FFFFFF"
+              ios_backgroundColor="#E5E5E7"
+            />
+          </View>
           <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.8}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
@@ -157,6 +189,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
+  quickLoginButton: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  quickLoginText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
   form: {
     marginBottom: 32,
   },
@@ -199,6 +246,32 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     marginTop: 4,
     lineHeight: 16,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5E7',
+  },
+  rememberMeLeft: {
+    flex: 1,
+  },
+  rememberMeLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#1D1D1F',
+    lineHeight: 22,
+  },
+  rememberMeSubtext: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6E6E73',
+    lineHeight: 20,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

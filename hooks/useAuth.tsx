@@ -1,15 +1,18 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { apiClient, TokenStorage, User } from '@/services/api';
+import { apiClient, User } from '@/services/api';
+import { TokenStorage, UserStorage } from '@/services/storage';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  rememberedEmail: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (userData: RegisterData) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; message?: string }>;
   refreshProfile: () => Promise<void>;
+  setRememberMe: (remember: boolean) => void;
 }
 
 interface RegisterData {
@@ -28,12 +31,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [rememberedEmail, setRememberedEmail] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const isAuthenticated = !!user;
 
   // Check for existing session on app start
   useEffect(() => {
     checkAuthStatus();
+    loadRememberedCredentials();
   }, []);
 
   const checkAuthStatus = async () => {
@@ -43,18 +49,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await apiClient.getProfile();
         if (response.success && response.data) {
           setUser(response.data.user);
+          await UserStorage.setUserData(response.data.user);
         } else {
           await TokenStorage.clearTokens();
+          await UserStorage.clearAllData();
         }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       await TokenStorage.clearTokens();
+      await UserStorage.clearAllData();
     } finally {
       setIsLoading(false);
     }
   };
 
+  const loadRememberedCredentials = async () => {
+    try {
+      const credentials = await UserStorage.getLoginCredentials();
+      if (credentials) {
+        setRememberedEmail(credentials.email);
+      }
+    } catch (error) {
+      console.error('Error loading remembered credentials:', error);
+    }
+  };
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -63,6 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.success && response.data) {
         const { user, tokens } = response.data;
         await TokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
+        await UserStorage.setUserData(user);
+        
+        // Store login credentials if remember me is enabled
+        if (rememberMe) {
+          await UserStorage.setLoginCredentials(email, true);
+        }
+        
         setUser(user);
         return { success: true };
       } else {
@@ -90,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.success && response.data) {
         const { user, tokens } = response.data;
         await TokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
+        await UserStorage.setUserData(user);
         setUser(user);
         return { success: true };
       } else {
@@ -117,6 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       await TokenStorage.clearTokens();
+      await UserStorage.clearAllData();
+      setRememberedEmail(null);
     }
   };
 
@@ -126,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.success && response.data) {
         setUser(response.data.user);
+        await UserStorage.setUserData(response.data.user);
         return { success: true };
       } else {
         return { 
@@ -147,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.getProfile();
       if (response.success && response.data) {
         setUser(response.data.user);
+        await UserStorage.setUserData(response.data.user);
       }
     } catch (error) {
       console.error('Profile refresh error:', error);
@@ -158,11 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       isAuthenticated,
+      rememberedEmail,
       login,
       register,
       logout,
       updateProfile,
       refreshProfile,
+      setRememberMe,
     }}>
       {children}
     </AuthContext.Provider>
