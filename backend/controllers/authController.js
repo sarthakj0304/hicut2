@@ -126,6 +126,13 @@ exports.login = async (req, res) => {
     }
 
     const { email, password } = req.body;
+    
+    // Extract device info from request
+    const deviceInfo = {
+      userAgent: req.headers['user-agent'] || 'Unknown',
+      platform: req.headers['x-platform'] || 'web',
+      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown'
+    };
 
     // Find user by email
     const user = await User.findOne({ email }).select('+password');
@@ -157,6 +164,8 @@ exports.login = async (req, res) => {
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      // Log failed login attempt
+      await user.logLoginAttempt(deviceInfo.ipAddress, deviceInfo.userAgent, deviceInfo.platform, false);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -166,15 +175,17 @@ exports.login = async (req, res) => {
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
 
-    // Save refresh token
-    user.refreshTokens.push({ token: refreshToken });
-    user.lastLogin = new Date();
-    await user.save();
+    // Save refresh token with device info
+    await user.addRefreshToken(refreshToken, deviceInfo);
+    
+    // Log successful login
+    await user.logLoginAttempt(deviceInfo.ipAddress, deviceInfo.userAgent, deviceInfo.platform, true);
 
     // Remove sensitive data from response
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.refreshTokens;
+    delete userResponse.loginHistory;
 
     res.json({
       success: true,
@@ -184,7 +195,12 @@ exports.login = async (req, res) => {
         tokens: {
           accessToken,
           refreshToken,
+          expiresIn: 24 * 60 * 60, // 24 hours in seconds
         },
+        deviceInfo: {
+          platform: deviceInfo.platform,
+          loginTime: new Date().toISOString()
+        }
       },
     });
   } catch (error) {
@@ -256,16 +272,20 @@ exports.logout = async (req, res) => {
     const { refreshToken } = req.body;
     const userId = req.user.userId;
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
     if (refreshToken) {
       // Remove specific refresh token
-      await User.findByIdAndUpdate(userId, {
-        $pull: { refreshTokens: { token: refreshToken } },
-      });
+      await user.removeRefreshToken(refreshToken);
     } else {
       // Remove all refresh tokens (logout from all devices)
-      await User.findByIdAndUpdate(userId, {
-        $set: { refreshTokens: [] },
-      });
+      await user.clearAllRefreshTokens();
     }
 
     res.json({
@@ -274,6 +294,122 @@ exports.logout = async (req, res) => {
     });
   } catch (error) {
     console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Get user's login history
+exports.getLoginHistory = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    
+    const user = await User.findById(userId).select('loginHistory');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    // Sort by timestamp descending and paginate
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedHistory = user.loginHistory
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(startIndex, endIndex);
+    
+    res.json({
+      success: true,
+      data: {
+        loginHistory: paginatedHistory,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: user.loginHistory.length,
+          pages: Math.ceil(user.loginHistory.length / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get login history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Get active sessions
+exports.getActiveSessions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const user = await User.findById(userId).select('refreshTokens');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    // Format active sessions
+    const activeSessions = user.refreshTokens.map(tokenData => ({
+      id: tokenData._id,
+      platform: tokenData.deviceInfo?.platform || 'Unknown',
+      userAgent: tokenData.deviceInfo?.userAgent || 'Unknown',
+      ipAddress: tokenData.deviceInfo?.ipAddress || 'Unknown',
+      createdAt: tokenData.createdAt,
+      isCurrentSession: req.headers.authorization?.includes(tokenData.token)
+    }));
+    
+    res.json({
+      success: true,
+      data: { activeSessions }
+    });
+  } catch (error) {
+    console.error('Get active sessions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// Revoke specific session
+exports.revokeSession = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { sessionId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    // Find and remove the specific refresh token
+    const tokenToRemove = user.refreshTokens.find(t => t._id.toString() === sessionId);
+    if (!tokenToRemove) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found',
+      });
+    }
+    
+    await user.removeRefreshToken(tokenToRemove.token);
+    
+    res.json({
+      success: true,
+      message: 'Session revoked successfully',
+    });
+  } catch (error) {
+    console.error('Revoke session error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

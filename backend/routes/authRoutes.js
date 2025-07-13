@@ -58,5 +58,8 @@ router.post('/send-phone-otp', authenticateToken, authController.sendPhoneOTP);
 router.post('/verify-phone-otp', authenticateToken, authController.verifyPhoneOTP);
 router.get('/profile', authenticateToken, authController.getProfile);
 router.put('/profile', authenticateToken, authController.updateProfile);
+router.get('/login-history', authenticateToken, authController.getLoginHistory);
+router.get('/active-sessions', authenticateToken, authController.getActiveSessions);
+router.delete('/sessions/:sessionId', authenticateToken, authController.revokeSession);
 
 module.exports = router;
