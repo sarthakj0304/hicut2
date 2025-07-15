@@ -22,6 +22,29 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    // Account Status
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    banReason: {
+      type: String,
+      default: null,
+    },
+
+    // Timestamps
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    memberSince: {
+      type: Date,
+      default: Date.now,
+    },
 
     // Profile Information
     profile: {
@@ -235,6 +258,7 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+<<<<<<< HEAD
 
     // Login History
     loginHistory: [{
@@ -285,6 +309,8 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+=======
+>>>>>>> 79b91e4 (commit 2)
   },
   {
     timestamps: true,
@@ -389,6 +415,7 @@ userSchema.methods.updateRating = function (newRating) {
   return this.save();
 };
 
+<<<<<<< HEAD
 // Method to log login attempt
 userSchema.methods.logLoginAttempt = function (ipAddress, userAgent, platform, success = true, location = null) {
   this.loginHistory.push({
@@ -441,3 +468,6 @@ userSchema.methods.clearAllRefreshTokens = function () {
 };
 
 module.exports = mongoose.model('User', userSchema);
+=======
+module.exports = mongoose.models.User || mongoose.model('User', userSchema); //This line ensures that Mongoose reuses the model if it's already compiled, but uses the latest schema.
+>>>>>>> 79b91e4 (commit 2)

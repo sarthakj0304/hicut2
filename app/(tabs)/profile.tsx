@@ -1,14 +1,45 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+
+// Errors - in the user schema, excluding refresh tokens is also exclusing attributes after it, i have changed the schema but the old one is still used untill the atlas is changed
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  ColorValue,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, CreditCard as Edit3, Settings, Moon, Globe, LogOut, Camera, Award, TrendingUp, Users, Clock, Zap } from 'lucide-react-native';
+import {
+  User,
+  Star,
+  MapPin,
+  Bell,
+  Shield,
+  CircleHelp as HelpCircle,
+  ChevronRight,
+  CreditCard as Edit3,
+  Settings,
+  Moon,
+  Globe,
+  LogOut,
+  Camera,
+  Award,
+  TrendingUp,
+  Users,
+  Clock,
+  Zap,
+} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRole } from '@/components/RoleContext';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface ProfileStat {
@@ -38,17 +69,17 @@ interface Achievement {
   total?: number;
 }
 
-const mockUser = {
-  name: 'Vishal Seth',
-  email: 'obsessionissin@gmail.com',
-  phone: '80762-xx-xx',
-  memberSince: 'March 2024',
-  trustScore: 4.9,
-  totalRides: 124,
-  totalTokens: 840,
-  carbonSaved: '45.2 kg',
-  tier: 'Gold'
-};
+// const mockUser = {
+//   name: 'Vishal Seth',
+//   email: 'obsessionissin@gmail.com',
+//   phone: '80762-xx-xx',
+//   memberSince: 'March 2024',
+//   trustScore: 4.9,
+//   totalRides: 124,
+//   totalTokens: 840,
+//   carbonSaved: '45.2 kg',
+//   tier: 'Gold',
+// };
 
 const achievements: Achievement[] = [
   {
@@ -56,14 +87,14 @@ const achievements: Achievement[] = [
     title: 'First Ride',
     description: 'Completed your first ride',
     icon: <Star size={16} color="#FFD700" strokeWidth={2} />,
-    unlocked: true
+    unlocked: true,
   },
   {
     id: '2',
     title: 'Community Helper',
     description: 'Helped 50+ community members',
     icon: <Users size={16} color="#34C759" strokeWidth={2} />,
-    unlocked: true
+    unlocked: true,
   },
   {
     id: '3',
@@ -72,7 +103,7 @@ const achievements: Achievement[] = [
     icon: <Award size={16} color="#007AFF" strokeWidth={2} />,
     unlocked: false,
     progress: 45,
-    total: 100
+    total: 100,
   },
   {
     id: '4',
@@ -81,11 +112,13 @@ const achievements: Achievement[] = [
     icon: <Zap size={16} color="#FF9500" strokeWidth={2} />,
     unlocked: false,
     progress: 7,
-    total: 10
-  }
+    total: 10,
+  },
 ];
 
 export default function ProfileScreen() {
+  const { user, refreshProfile } = useAuth();
+  const [loading, setLoading] = useState(true);
   const { role } = useRole();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
@@ -95,33 +128,36 @@ export default function ProfileScreen() {
 
   const cardScale = useSharedValue(1);
   const achievementOpacity = useSharedValue(0);
+  useEffect(() => {
+    const loadProfile = async () => {
+      await refreshProfile();
+      setLoading(false);
+    };
+    loadProfile();
+  }, []);
 
-  const profileStats: ProfileStat[] = [
-    { 
-      label: 'Rides', 
-      value: mockUser.totalRides.toString(), 
-      icon: <MapPin size={16} color="#007AFF" strokeWidth={2} />,
-      color: '#007AFF'
-    },
-    { 
-      label: 'Rating', 
-      value: mockUser.trustScore.toString(), 
-      icon: <Star size={16} color="#FFD700" strokeWidth={2} />,
-      color: '#FFD700'
-    },
-    { 
-      label: 'Tokens', 
-      value: mockUser.totalTokens.toString(), 
-      icon: <Award size={16} color="#34C759" strokeWidth={2} />,
-      color: '#34C759'
-    },
-    { 
-      label: 'CO₂ Saved', 
-      value: mockUser.carbonSaved, 
-      icon: <TrendingUp size={16} color="#00D4FF" strokeWidth={2} />,
-      color: '#00D4FF'
-    }
-  ];
+  const handleAchievementToggle = () => {
+    setShowAchievements(!showAchievements);
+    achievementOpacity.value = withTiming(showAchievements ? 0 : 1, {
+      duration: 300,
+    });
+  };
+
+  const handleEditProfile = () => {
+    cardScale.value = withSpring(isEditing ? 1 : 0.98);
+  };
+  React.useEffect(() => {
+    handleEditProfile();
+  }, [isEditing]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+  }));
+
+  const achievementStyle = useAnimatedStyle(() => ({
+    opacity: achievementOpacity.value,
+    height: showAchievements ? 'auto' : 0,
+  }));
 
   const menuItems: MenuItem[] = [
     {
@@ -129,14 +165,14 @@ export default function ProfileScreen() {
       title: 'Edit Profile',
       icon: <Edit3 size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'action',
-      onPress: () => setIsEditing(!isEditing)
+      onPress: () => setIsEditing(!isEditing),
     },
     {
       id: '2',
       title: 'Saved Places',
       icon: <MapPin size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'navigation',
-      onPress: () => console.log('Saved places')
+      onPress: () => console.log('Saved places'),
     },
     {
       id: '3',
@@ -144,7 +180,7 @@ export default function ProfileScreen() {
       icon: <Bell size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'toggle',
       value: notificationsEnabled,
-      onPress: () => setNotificationsEnabled(!notificationsEnabled)
+      onPress: () => setNotificationsEnabled(!notificationsEnabled),
     },
     {
       id: '4',
@@ -152,7 +188,7 @@ export default function ProfileScreen() {
       icon: <Shield size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'toggle',
       value: locationEnabled,
-      onPress: () => setLocationEnabled(!locationEnabled)
+      onPress: () => setLocationEnabled(!locationEnabled),
     },
     {
       id: '5',
@@ -160,28 +196,28 @@ export default function ProfileScreen() {
       icon: <Moon size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'toggle',
       value: darkModeEnabled,
-      onPress: () => setDarkModeEnabled(!darkModeEnabled)
+      onPress: () => setDarkModeEnabled(!darkModeEnabled),
     },
     {
       id: '6',
       title: 'Language',
       icon: <Globe size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'navigation',
-      onPress: () => console.log('Language settings')
+      onPress: () => console.log('Language settings'),
     },
     {
       id: '7',
       title: 'App Settings',
       icon: <Settings size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'navigation',
-      onPress: () => console.log('App settings')
+      onPress: () => console.log('App settings'),
     },
     {
       id: '8',
       title: 'Help & Support',
       icon: <HelpCircle size={20} color="#1D1D1F" strokeWidth={2} />,
       type: 'navigation',
-      onPress: () => console.log('Help & support')
+      onPress: () => console.log('Help & support'),
     },
     {
       id: '9',
@@ -189,42 +225,64 @@ export default function ProfileScreen() {
       icon: <LogOut size={20} color="#FF3B30" strokeWidth={2} />,
       type: 'action',
       color: '#FF3B30',
-      onPress: () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => console.log('Sign out') }
-      ])
-    }
+      onPress: () =>
+        Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign Out',
+            style: 'destructive',
+            onPress: () => console.log('Sign out'),
+          },
+        ]),
+    },
+  ];
+  if (loading || !user) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  const profileStats: ProfileStat[] = [
+    {
+      label: 'Rides',
+      value: user.stats.totalRides.toString(),
+      icon: <MapPin size={16} color="#007AFF" strokeWidth={2} />,
+      color: '#007AFF',
+    },
+    {
+      label: 'Rating',
+      value: user.stats.trustScore.toString(),
+      icon: <Star size={16} color="#FFD700" strokeWidth={2} />,
+      color: '#FFD700',
+    },
+    {
+      label: 'Tokens',
+      value: user.tokens.total.toString(),
+      icon: <Award size={16} color="#34C759" strokeWidth={2} />,
+      color: '#34C759',
+    },
+    {
+      label: 'CO₂ Saved',
+      value: user.stats.carbonSaved.toString(),
+      icon: <TrendingUp size={16} color="#00D4FF" strokeWidth={2} />,
+      color: '#00D4FF',
+    },
   ];
 
-  const handleAchievementToggle = () => {
-    setShowAchievements(!showAchievements);
-    achievementOpacity.value = withTiming(showAchievements ? 0 : 1, { duration: 300 });
-  };
-
-  const handleEditProfile = () => {
-    cardScale.value = withSpring(isEditing ? 1 : 0.98);
-  };
-
-  React.useEffect(() => {
-    handleEditProfile();
-  }, [isEditing]);
-
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }]
-  }));
-
-  const achievementStyle = useAnimatedStyle(() => ({
-    opacity: achievementOpacity.value,
-    height: showAchievements ? 'auto' : 0
-  }));
-
-  const getTierGradient = (tier: string) => {
+  const getTierGradient = (tier: string): readonly [ColorValue, ColorValue] => {
     switch (tier.toLowerCase()) {
-      case 'silver': return ['#C0C0C0', '#E8E8E8'];
-      case 'gold': return ['#FFD700', '#FFA500'];
-      case 'platinum': return ['#E5E4E2', '#BCC6CC'];
-      case 'diamond': return ['#B9F2FF', '#00D4FF'];
-      default: return ['#667eea', '#764ba2'];
+      case 'silver':
+        return ['#C0C0C0', '#E8E8E8'];
+      case 'gold':
+        return ['#FFD700', '#FFA500'];
+      case 'platinum':
+        return ['#E5E4E2', '#BCC6CC'];
+      case 'diamond':
+        return ['#B9F2FF', '#00D4FF'];
+      default:
+        return ['#667eea', '#764ba2'];
     }
   };
 
@@ -234,7 +292,7 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <Animated.View style={[styles.profileSection, cardStyle]}>
           <LinearGradient
-            colors={getTierGradient(mockUser.tier)}
+            colors={getTierGradient('Gold')} // will see later
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.profileCard}
@@ -244,25 +302,35 @@ export default function ProfileScreen() {
                 <View style={styles.avatar}>
                   <User size={32} color="#FFFFFF" strokeWidth={2} />
                 </View>
-                <TouchableOpacity style={styles.cameraButton} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={styles.cameraButton}
+                  activeOpacity={0.8}
+                >
                   <Camera size={16} color="#007AFF" strokeWidth={2} />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.profileInfo}>
                 <View style={styles.nameContainer}>
-                  <Text style={styles.profileName}>{mockUser.name}</Text>
-                  <View style={styles.tierBadge}>
-                    <Text style={styles.tierText}>{mockUser.tier}</Text>
-                  </View>
+                  <Text style={styles.profileName}>
+                    {user.profile.firstName + user.profile.lastName}
+                  </Text>
+                  {/* <View style={styles.tierBadge}>
+                    <Text style={styles.tierText}>{user.tier}</Text>
+                  </View> */}
                 </View>
-                <Text style={styles.profileEmail}>{mockUser.email}</Text>
+                <Text style={styles.profileEmail}>{user.email}</Text>
                 <View style={styles.profileRating}>
-                  <Star size={16} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
-                  <Text style={styles.ratingText}>{mockUser.trustScore}</Text>
+                  <Star
+                    size={16}
+                    color="#FFFFFF"
+                    fill="#FFFFFF"
+                    strokeWidth={0}
+                  />
+                  <Text style={styles.ratingText}>{user.stats.trustScore}</Text>
                   <Text style={styles.ratingLabel}>{role} rating</Text>
                 </View>
-                <Text style={styles.memberSince}>Member since {mockUser.memberSince}</Text>
+                <Text style={styles.memberSince}>Member since {1000}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -272,7 +340,7 @@ export default function ProfileScreen() {
         <View style={styles.statsSection}>
           <View style={styles.statsHeader}>
             <Text style={styles.sectionTitle}>Your Impact</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.achievementToggle}
               onPress={handleAchievementToggle}
               activeOpacity={0.8}
@@ -281,11 +349,16 @@ export default function ProfileScreen() {
               <Text style={styles.achievementToggleText}>Achievements</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.statsGrid}>
             {profileStats.map((stat, index) => (
               <View key={stat.label} style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: stat.color + '20' }]}>
+                <View
+                  style={[
+                    styles.statIcon,
+                    { backgroundColor: stat.color + '20' },
+                  ]}
+                >
                   {stat.icon}
                 </View>
                 <Text style={styles.statValue}>{stat.value}</Text>
@@ -301,45 +374,54 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Achievements</Text>
             <View style={styles.achievementsGrid}>
               {achievements.map((achievement) => (
-                <View 
-                  key={achievement.id} 
+                <View
+                  key={achievement.id}
                   style={[
                     styles.achievementCard,
-                    achievement.unlocked && styles.unlockedAchievement
+                    achievement.unlocked && styles.unlockedAchievement,
                   ]}
                 >
-                  <View style={styles.achievementIcon}>
-                    {achievement.icon}
-                  </View>
-                  <Text style={[
-                    styles.achievementTitle,
-                    achievement.unlocked && styles.unlockedText
-                  ]}>
+                  <View style={styles.achievementIcon}>{achievement.icon}</View>
+                  <Text
+                    style={[
+                      styles.achievementTitle,
+                      achievement.unlocked && styles.unlockedText,
+                    ]}
+                  >
                     {achievement.title}
                   </Text>
-                  <Text style={[
-                    styles.achievementDescription,
-                    achievement.unlocked && styles.unlockedDescription
-                  ]}>
+                  <Text
+                    style={[
+                      styles.achievementDescription,
+                      achievement.unlocked && styles.unlockedDescription,
+                    ]}
+                  >
                     {achievement.description}
                   </Text>
-                  
-                  {!achievement.unlocked && achievement.progress && achievement.total && (
-                    <View style={styles.achievementProgress}>
-                      <View style={styles.progressBar}>
-                        <View 
-                          style={[
-                            styles.progressFill, 
-                            { width: `${(achievement.progress / achievement.total) * 100}%` }
-                          ]} 
-                        />
+
+                  {!achievement.unlocked &&
+                    achievement.progress &&
+                    achievement.total && (
+                      <View style={styles.achievementProgress}>
+                        <View style={styles.progressBar}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              {
+                                width: `${
+                                  (achievement.progress / achievement.total) *
+                                  100
+                                }%`,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.progressText}>
+                          {achievement.progress}/{achievement.total}
+                        </Text>
                       </View>
-                      <Text style={styles.progressText}>
-                        {achievement.progress}/{achievement.total}
-                      </Text>
-                    </View>
-                  )}
-                  
+                    )}
+
                   {achievement.unlocked && (
                     <View style={styles.unlockedBadge}>
                       <Text style={styles.unlockedBadgeText}>✓</Text>
@@ -360,26 +442,30 @@ export default function ProfileScreen() {
                 key={item.id}
                 style={[
                   styles.menuItem,
-                  item.color === '#FF3B30' && styles.dangerMenuItem
+                  item.color === '#FF3B30' && styles.dangerMenuItem,
                 ]}
                 onPress={item.onPress}
                 activeOpacity={0.8}
               >
                 <View style={styles.menuLeft}>
-                  <View style={[
-                    styles.menuIcon,
-                    item.color === '#FF3B30' && styles.dangerMenuIcon
-                  ]}>
+                  <View
+                    style={[
+                      styles.menuIcon,
+                      item.color === '#FF3B30' && styles.dangerMenuIcon,
+                    ]}
+                  >
                     {item.icon}
                   </View>
-                  <Text style={[
-                    styles.menuTitle,
-                    item.color === '#FF3B30' && styles.dangerMenuText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.menuTitle,
+                      item.color === '#FF3B30' && styles.dangerMenuText,
+                    ]}
+                  >
                     {item.title}
                   </Text>
                 </View>
-                
+
                 <View style={styles.menuRight}>
                   {item.type === 'toggle' ? (
                     <Switch
@@ -410,7 +496,7 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
-
+// ------------------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
