@@ -118,7 +118,7 @@ const achievements: Achievement[] = [
 
 export default function ProfileScreen() {
   const { user, refreshProfile } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // new
   const { role } = useRole();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
