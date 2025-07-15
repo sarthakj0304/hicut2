@@ -22,6 +22,33 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    // Account Status
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    banReason: {
+      type: String,
+      default: null,
+    },
+
+    // Timestamps
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    lastActivity: {
+      type: Date,
+      default: Date.now,
+    },
+    memberSince: {
+      type: Date,
+      default: Date.now,
+    },
 
     // Profile Information
     profile: {
@@ -237,18 +264,20 @@ const userSchema = new mongoose.Schema(
     ],
 
     // Login History
-    loginHistory: [{
-      timestamp: { type: Date, default: Date.now },
-      ipAddress: String,
-      userAgent: String,
-      platform: String,
-      location: {
-        city: String,
-        country: String,
-        coordinates: [Number] // [lng, lat]
+    loginHistory: [
+      {
+        timestamp: { type: Date, default: Date.now },
+        ipAddress: String,
+        userAgent: String,
+        platform: String,
+        location: {
+          city: String,
+          country: String,
+          coordinates: [Number], // [lng, lat]
+        },
+        success: { type: Boolean, default: true },
       },
-      success: { type: Boolean, default: true }
-    }],
+    ],
 
     // Security Settings
     securitySettings: {
@@ -256,34 +285,6 @@ const userSchema = new mongoose.Schema(
       loginNotifications: { type: Boolean, default: true },
       suspiciousActivityAlerts: { type: Boolean, default: true },
       sessionTimeout: { type: Number, default: 24 * 60 * 60 * 1000 }, // 24 hours in ms
-    },
-
-    // Account Status
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    isBanned: {
-      type: Boolean,
-      default: false,
-    },
-    banReason: {
-      type: String,
-      default: null,
-    },
-
-    // Timestamps
-    lastLogin: {
-      type: Date,
-      default: null,
-    },
-    lastActivity: {
-      type: Date,
-      default: Date.now,
-    },
-    memberSince: {
-      type: Date,
-      default: Date.now,
     },
   },
   {
@@ -390,25 +391,31 @@ userSchema.methods.updateRating = function (newRating) {
 };
 
 // Method to log login attempt
-userSchema.methods.logLoginAttempt = function (ipAddress, userAgent, platform, success = true, location = null) {
+userSchema.methods.logLoginAttempt = function (
+  ipAddress,
+  userAgent,
+  platform,
+  success = true,
+  location = null
+) {
   this.loginHistory.push({
     timestamp: new Date(),
     ipAddress,
     userAgent,
     platform,
     location,
-    success
+    success,
   });
-  
+
   // Keep only last 50 login attempts
   if (this.loginHistory.length > 50) {
     this.loginHistory = this.loginHistory.slice(-50);
   }
-  
+
   if (success) {
     this.lastLogin = new Date();
   }
-  
+
   return this.save();
 };
 
@@ -417,20 +424,20 @@ userSchema.methods.addRefreshToken = function (token, deviceInfo) {
   this.refreshTokens.push({
     token,
     deviceInfo,
-    createdAt: new Date()
+    createdAt: new Date(),
   });
-  
+
   // Keep only last 5 refresh tokens per user
   if (this.refreshTokens.length > 5) {
     this.refreshTokens = this.refreshTokens.slice(-5);
   }
-  
+
   return this.save();
 };
 
 // Method to remove refresh token
 userSchema.methods.removeRefreshToken = function (token) {
-  this.refreshTokens = this.refreshTokens.filter(t => t.token !== token);
+  this.refreshTokens = this.refreshTokens.filter((t) => t.token !== token);
   return this.save();
 };
 
@@ -440,4 +447,6 @@ userSchema.methods.clearAllRefreshTokens = function () {
   return this.save();
 };
 
-module.exports = mongoose.model('User', userSchema);
+// module.exports = mongoose.model('User', userSchema);
+
+module.exports = mongoose.models.User || mongoose.model('User', userSchema); //This line ensures that Mongoose reuses the model if it's already compiled, but uses the latest schema.

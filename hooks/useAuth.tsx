@@ -1,4 +1,10 @@
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+} from 'react';
 import { apiClient, User } from '@/services/api';
 import { TokenStorage, UserStorage } from '@/services/storage';
 
@@ -7,10 +13,17 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   rememberedEmail: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (userData: RegisterData) => Promise<{ success: boolean; message?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  register: (
+    userData: RegisterData
+  ) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
-  updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; message?: string }>;
+  updateProfile: (
+    updates: Partial<User>
+  ) => Promise<{ success: boolean; message?: string }>;
   refreshProfile: () => Promise<void>;
   setRememberMe: (remember: boolean) => void;
 }
@@ -78,30 +91,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await apiClient.login(email, password);
-      
+
       if (response.success && response.data) {
         const { user, tokens } = response.data;
         await TokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
         await UserStorage.setUserData(user);
-        
+
         // Store login credentials if remember me is enabled
         if (rememberMe) {
           await UserStorage.setLoginCredentials(email, true);
         }
-        
+
         setUser(user);
         return { success: true };
       } else {
-        return { 
-          success: false, 
-          message: response.message || 'Login failed' 
+        return {
+          success: false,
+          message: response.message || 'Login failed',
         };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        message: 'Network error. Please try again.' 
+      return {
+        success: false,
+        message: 'Network error. Please try again.',
       };
     } finally {
       setIsLoading(false);
@@ -112,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await apiClient.register(userData);
-      
+
       if (response.success && response.data) {
         const { user, tokens } = response.data;
         await TokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
@@ -120,16 +133,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
         return { success: true };
       } else {
-        return { 
-          success: false, 
-          message: response.message || 'Registration failed' 
+        return {
+          success: false,
+          message: response.message || 'Registration failed',
         };
       }
     } catch (error) {
       console.error('Registration error:', error);
-      return { 
-        success: false, 
-        message: 'Network error. Please try again.' 
+      return {
+        success: false,
+        message: 'Network error. Please try again.',
       };
     } finally {
       setIsLoading(false);
@@ -152,22 +165,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (updates: Partial<User>) => {
     try {
       const response = await apiClient.updateProfile(updates);
-      
+
       if (response.success && response.data) {
         setUser(response.data.user);
         await UserStorage.setUserData(response.data.user);
         return { success: true };
       } else {
-        return { 
-          success: false, 
-          message: response.message || 'Update failed' 
+        return {
+          success: false,
+          message: response.message || 'Update failed',
         };
       }
     } catch (error) {
       console.error('Profile update error:', error);
-      return { 
-        success: false, 
-        message: 'Network error. Please try again.' 
+      return {
+        success: false,
+        message: 'Network error. Please try again.',
       };
     }
   };
@@ -185,18 +198,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated,
-      rememberedEmail,
-      login,
-      register,
-      logout,
-      updateProfile,
-      refreshProfile,
-      setRememberMe,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated,
+        rememberedEmail,
+        login,
+        register,
+        logout,
+        updateProfile,
+        refreshProfile,
+        setRememberMe,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
