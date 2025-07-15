@@ -447,6 +447,6 @@ userSchema.methods.clearAllRefreshTokens = function () {
   return this.save();
 };
 
-module.exports = mongoose.model('User', userSchema);
+// module.exports = mongoose.model('User', userSchema);
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema); //This line ensures that Mongoose reuses the model if it's already compiled, but uses the latest schema.
