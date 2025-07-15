@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { apiClient, User } from '@/services/api';
-import { TokenStorage, UserStorage } from '@/services/storage';
-=======
 import React, {
   useState,
   useEffect,
@@ -10,18 +5,14 @@ import React, {
   useContext,
   ReactNode,
 } from 'react';
-import { apiClient, TokenStorage, User } from '@/services/api';
->>>>>>> 79b91e4 (commit 2)
+import { apiClient, User } from '@/services/api';
+import { TokenStorage, UserStorage } from '@/services/storage';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-<<<<<<< HEAD
   rememberedEmail: string | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (userData: RegisterData) => Promise<{ success: boolean; message?: string }>;
-=======
   login: (
     email: string,
     password: string
@@ -29,7 +20,6 @@ interface AuthContextType {
   register: (
     userData: RegisterData
   ) => Promise<{ success: boolean; message?: string }>;
->>>>>>> 79b91e4 (commit 2)
   logout: () => Promise<void>;
   updateProfile: (
     updates: Partial<User>
@@ -106,12 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { user, tokens } = response.data;
         await TokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
         await UserStorage.setUserData(user);
-        
+
         // Store login credentials if remember me is enabled
         if (rememberMe) {
           await UserStorage.setLoginCredentials(email, true);
         }
-        
+
         setUser(user);
         return { success: true };
       } else {
@@ -208,33 +198,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-<<<<<<< HEAD
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated,
-      rememberedEmail,
-      login,
-      register,
-      logout,
-      updateProfile,
-      refreshProfile,
-      setRememberMe,
-    }}>
-=======
     <AuthContext.Provider
       value={{
         user,
         isLoading,
         isAuthenticated,
+        rememberedEmail,
         login,
         register,
         logout,
         updateProfile,
         refreshProfile,
+        setRememberMe,
       }}
     >
->>>>>>> 79b91e4 (commit 2)
       {children}
     </AuthContext.Provider>
   );
