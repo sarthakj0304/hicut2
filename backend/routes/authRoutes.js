@@ -34,7 +34,7 @@ const registerValidation = [
   body('role')
     .optional()
     .isIn(['rider', 'driver', 'both'])
-    .withMessage('Please select a valid role')
+    .withMessage('Please select a valid role'),
 ];
 
 const loginValidation = [
@@ -42,9 +42,7 @@ const loginValidation = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
+  body('password').notEmpty().withMessage('Password is required'),
 ];
 
 // Public routes
@@ -55,11 +53,23 @@ router.post('/refresh-token', authController.refreshToken);
 // Protected routes
 router.post('/logout', authenticateToken, authController.logout);
 router.post('/send-phone-otp', authenticateToken, authController.sendPhoneOTP);
-router.post('/verify-phone-otp', authenticateToken, authController.verifyPhoneOTP);
+router.post(
+  '/verify-phone-otp',
+  authenticateToken,
+  authController.verifyPhoneOTP
+);
 router.get('/profile', authenticateToken, authController.getProfile);
 router.put('/profile', authenticateToken, authController.updateProfile);
 router.get('/login-history', authenticateToken, authController.getLoginHistory);
-router.get('/active-sessions', authenticateToken, authController.getActiveSessions);
-router.delete('/sessions/:sessionId', authenticateToken, authController.revokeSession);
+router.get(
+  '/active-sessions',
+  authenticateToken,
+  authController.getActiveSessions
+);
+router.delete(
+  '/sessions/:sessionId',
+  authenticateToken,
+  authController.revokeSession
+);
 
 module.exports = router;

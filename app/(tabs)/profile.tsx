@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { navigate } from 'expo-router/build/global-state/routing';
 
 // Errors - in the user schema, excluding refresh tokens is also exclusing attributes after it, i have changed the schema but the old one is still used untill the atlas is changed
 import {
@@ -117,7 +118,7 @@ const achievements: Achievement[] = [
 ];
 
 export default function ProfileScreen() {
-  const { user, refreshProfile } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true); // new
   const { role } = useRole();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -225,15 +226,13 @@ export default function ProfileScreen() {
       icon: <LogOut size={20} color="#FF3B30" strokeWidth={2} />,
       type: 'action',
       color: '#FF3B30',
-      onPress: () =>
-        Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Sign Out',
-            style: 'destructive',
-            onPress: () => console.log('Sign out'),
-          },
-        ]),
+      onPress: () => {
+        console.log('Sign out');
+        if (window.confirm('Do you want to sign out?')) {
+          logout();
+          navigate('/auth/login');
+        }
+      },
     },
   ];
   if (loading || !user) {

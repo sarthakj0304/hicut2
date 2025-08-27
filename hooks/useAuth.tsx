@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { apiClient, User } from '@/services/api';
 import { TokenStorage, UserStorage } from '@/services/storage';
+import { navigate } from 'expo-router/build/global-state/routing';
 
 interface AuthContextType {
   user: User | null;
