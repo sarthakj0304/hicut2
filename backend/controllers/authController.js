@@ -126,12 +126,12 @@ exports.login = async (req, res) => {
     }
 
     const { email, password } = req.body;
-    
+
     // Extract device info from request
     const deviceInfo = {
       userAgent: req.headers['user-agent'] || 'Unknown',
       platform: req.headers['x-platform'] || 'web',
-      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown'
+      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
     };
 
     // Find user by email
@@ -165,7 +165,12 @@ exports.login = async (req, res) => {
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       // Log failed login attempt
-      await user.logLoginAttempt(deviceInfo.ipAddress, deviceInfo.userAgent, deviceInfo.platform, false);
+      await user.logLoginAttempt(
+        deviceInfo.ipAddress,
+        deviceInfo.userAgent,
+        deviceInfo.platform,
+        false
+      );
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -177,9 +182,14 @@ exports.login = async (req, res) => {
 
     // Save refresh token with device info
     await user.addRefreshToken(refreshToken, deviceInfo);
-    
+
     // Log successful login
-    await user.logLoginAttempt(deviceInfo.ipAddress, deviceInfo.userAgent, deviceInfo.platform, true);
+    await user.logLoginAttempt(
+      deviceInfo.ipAddress,
+      deviceInfo.userAgent,
+      deviceInfo.platform,
+      true
+    );
 
     // Remove sensitive data from response
     const userResponse = user.toObject();
@@ -199,8 +209,8 @@ exports.login = async (req, res) => {
         },
         deviceInfo: {
           platform: deviceInfo.platform,
-          loginTime: new Date().toISOString()
-        }
+          loginTime: new Date().toISOString(),
+        },
       },
     });
   } catch (error) {
@@ -306,7 +316,7 @@ exports.getLoginHistory = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { page = 1, limit = 20 } = req.query;
-    
+
     const user = await User.findById(userId).select('loginHistory');
     if (!user) {
       return res.status(404).json({
@@ -314,14 +324,14 @@ exports.getLoginHistory = async (req, res) => {
         message: 'User not found',
       });
     }
-    
+
     // Sort by timestamp descending and paginate
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + parseInt(limit);
     const paginatedHistory = user.loginHistory
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(startIndex, endIndex);
-    
+
     res.json({
       success: true,
       data: {
@@ -330,9 +340,9 @@ exports.getLoginHistory = async (req, res) => {
           page: parseInt(page),
           limit: parseInt(limit),
           total: user.loginHistory.length,
-          pages: Math.ceil(user.loginHistory.length / limit)
-        }
-      }
+          pages: Math.ceil(user.loginHistory.length / limit),
+        },
+      },
     });
   } catch (error) {
     console.error('Get login history error:', error);
@@ -347,7 +357,7 @@ exports.getLoginHistory = async (req, res) => {
 exports.getActiveSessions = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
+
     const user = await User.findById(userId).select('refreshTokens');
     if (!user) {
       return res.status(404).json({
@@ -355,20 +365,20 @@ exports.getActiveSessions = async (req, res) => {
         message: 'User not found',
       });
     }
-    
+
     // Format active sessions
-    const activeSessions = user.refreshTokens.map(tokenData => ({
+    const activeSessions = user.refreshTokens.map((tokenData) => ({
       id: tokenData._id,
       platform: tokenData.deviceInfo?.platform || 'Unknown',
       userAgent: tokenData.deviceInfo?.userAgent || 'Unknown',
       ipAddress: tokenData.deviceInfo?.ipAddress || 'Unknown',
       createdAt: tokenData.createdAt,
-      isCurrentSession: req.headers.authorization?.includes(tokenData.token)
+      isCurrentSession: req.headers.authorization?.includes(tokenData.token),
     }));
-    
+
     res.json({
       success: true,
-      data: { activeSessions }
+      data: { activeSessions },
     });
   } catch (error) {
     console.error('Get active sessions error:', error);
@@ -384,7 +394,7 @@ exports.revokeSession = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { sessionId } = req.params;
-    
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -392,18 +402,20 @@ exports.revokeSession = async (req, res) => {
         message: 'User not found',
       });
     }
-    
+
     // Find and remove the specific refresh token
-    const tokenToRemove = user.refreshTokens.find(t => t._id.toString() === sessionId);
+    const tokenToRemove = user.refreshTokens.find(
+      (t) => t._id.toString() === sessionId
+    );
     if (!tokenToRemove) {
       return res.status(404).json({
         success: false,
         message: 'Session not found',
       });
     }
-    
+
     await user.removeRefreshToken(tokenToRemove.token);
-    
+
     res.json({
       success: true,
       message: 'Session revoked successfully',
@@ -539,6 +551,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
     const updates = req.body;
+    console.log(updates);
 
     // Remove sensitive fields that shouldn't be updated via this endpoint
     delete updates.password;
@@ -548,18 +561,27 @@ exports.updateProfile = async (req, res) => {
     delete updates.tokens;
     delete updates.stats;
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select('-password -refreshTokens');
-
+    const mappedUpdates = {};
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
+    // Handle profile fields
+    if (updates.name) {
+      const [firstName, ...lastNameParts] = updates.name.split(' ');
+      user.profile.firstName = firstName;
+      user.profile.lastName = lastNameParts.join(' ');
+    }
+    // Direct mappings
+    if (updates.bio !== undefined) user.profile.bio = updates.bio;
+    if (updates.location !== undefined) user.location = updates.location;
+    if (updates.phone !== undefined) user.phone = updates.phone;
+
+    // Save the document
+    await user.save();
 
     res.json({
       success: true,

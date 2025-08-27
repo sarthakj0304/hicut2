@@ -59,7 +59,7 @@ router.post(
   authController.verifyPhoneOTP
 );
 router.get('/profile', authenticateToken, authController.getProfile);
-router.put('/profile', authenticateToken, authController.updateProfile);
+router.put('/updateProfile', authenticateToken, authController.updateProfile);
 router.get('/login-history', authenticateToken, authController.getLoginHistory);
 router.get(
   '/active-sessions',

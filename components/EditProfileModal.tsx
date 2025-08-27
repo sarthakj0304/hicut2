@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  ScrollView,
+} from 'react-native';
 import { X, Save, User, Mail, Phone, MapPin } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface EditProfileModalProps {
   visible: boolean;
   user: {
-    name: string;
-    email: string;
-    phone: string;
+    name?: string;
+    email?: string;
+    phone?: string;
     bio?: string;
     location?: string;
   };
@@ -25,18 +33,18 @@ export default function EditProfileModal({
   visible,
   user,
   onClose,
-  onSave
+  onSave,
 }: EditProfileModalProps) {
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
     phone: user.phone,
     bio: user.bio || '',
-    location: user.location || ''
+    location: user.location || '',
   });
-  
+
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -52,7 +60,7 @@ export default function EditProfileModal({
 
   const handleSave = async () => {
     setIsSaving(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       onSave(formData);
@@ -67,7 +75,7 @@ export default function EditProfileModal({
   }));
 
   const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -80,12 +88,16 @@ export default function EditProfileModal({
       <View style={styles.overlay}>
         <Animated.View style={[styles.modal, modalStyle]}>
           <View style={styles.header}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
               <X size={24} color="#6E6E73" strokeWidth={2} />
             </TouchableOpacity>
             <Text style={styles.title}>Edit Profile</Text>
-            <TouchableOpacity 
-              style={[styles.saveButton, isSaving && styles.savingButton]} 
+            <TouchableOpacity
+              style={[styles.saveButton, isSaving && styles.savingButton]}
               onPress={handleSave}
               disabled={isSaving}
               activeOpacity={0.8}
@@ -94,13 +106,19 @@ export default function EditProfileModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Profile Picture Section */}
             <View style={styles.avatarSection}>
               <View style={styles.avatar}>
                 <User size={32} color="#FFFFFF" strokeWidth={2} />
               </View>
-              <TouchableOpacity style={styles.changePhotoButton} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.changePhotoButton}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.changePhotoText}>Change Photo</Text>
               </TouchableOpacity>
             </View>
@@ -186,7 +204,8 @@ export default function EditProfileModal({
             {/* Privacy Notice */}
             <View style={styles.privacyNotice}>
               <Text style={styles.privacyText}>
-                Your information is secure and will only be shared with ride participants when necessary.
+                Your information is secure and will only be shared with ride
+                participants when necessary.
               </Text>
             </View>
           </ScrollView>
