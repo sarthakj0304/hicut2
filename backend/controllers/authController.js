@@ -561,7 +561,6 @@ exports.updateProfile = async (req, res) => {
     delete updates.tokens;
     delete updates.stats;
 
-    const mappedUpdates = {};
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -577,7 +576,20 @@ exports.updateProfile = async (req, res) => {
     }
     // Direct mappings
     if (updates.bio !== undefined) user.profile.bio = updates.bio;
-    if (updates.location !== undefined) user.location = updates.location;
+    // Location fields (nested mapping)
+    if (updates.location) {
+      if (updates.location.address !== undefined)
+        user.location.address = updates.location.address;
+      if (updates.location.city !== undefined)
+        user.location.city = updates.location.city;
+      if (updates.location.state !== undefined)
+        user.location.state = updates.location.state;
+      if (updates.location.country !== undefined)
+        user.location.country = updates.location.country;
+      if (updates.location.current !== undefined) {
+        user.location.current = updates.location.current;
+      }
+    }
     if (updates.phone !== undefined) user.phone = updates.phone;
 
     // Save the document
